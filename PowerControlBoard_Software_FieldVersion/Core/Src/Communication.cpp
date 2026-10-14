@@ -119,8 +119,8 @@ FDCAN_TxHeaderTypeDef getTxHeader(uint16_t id)
     return txHeader;
 }
 
-static FDCAN_TxHeaderTypeDef txHeader = getTxHeader(0x051);
-static FDCAN_TxHeaderTypeDef txHeaderNew = getTxHeader(0x052);
+static FDCAN_TxHeaderTypeDef txHeader = getTxHeader(CAN_FEEDBACK_ID);
+static FDCAN_TxHeaderTypeDef txHeaderNew = getTxHeader(CAN_FEEDBACK_NEW_ID);
 
 static FDCAN_RxHeaderTypeDef rxHeader = {};
 
@@ -128,14 +128,19 @@ void init()
 {
     static_assert(sizeof(RxData) == 8, "RxData size error");
     static_assert(sizeof(TxData) == 8, "TxData size error");
+    static_assert(sizeof(TxDataNew) == 8, "TxDataNew size error");
+    static_assert(CAN_CMD_ID <= 0x7FFU && CAN_FEEDBACK_ID <= 0x7FFU &&
+                  CAN_FEEDBACK_NEW_ID <= 0x7FFU, "CAN standard IDs must be 11-bit");
+    static_assert(CAN_CMD_ID != CAN_FEEDBACK_ID && CAN_CMD_ID != CAN_FEEDBACK_NEW_ID &&
+                  CAN_FEEDBACK_ID != CAN_FEEDBACK_NEW_ID, "CAN IDs must be distinct");
 
     FDCAN_FilterTypeDef filter;
     filter.IdType = FDCAN_STANDARD_ID;
     filter.FilterIndex = 0;
     filter.FilterType = FDCAN_FILTER_DUAL;
     filter.FilterConfig = FDCAN_FILTER_TO_RXFIFO0;
-    filter.FilterID1 = 0x061 << 5;
-    filter.FilterID2 = 0x061 << 5;
+    filter.FilterID1 = CAN_CMD_ID << 5;
+    filter.FilterID2 = CAN_CMD_ID << 5;
 
     rxData.enableDCDC = 1;
     rxData.systemRestart = 0;
@@ -158,14 +163,7 @@ static void generateTxData(TxData &td)
                     (errorData.errorLevel & 0x03);
     td.capEnergy = (adcData.vCaplf*adcData.vCaplf * (1/(CAPARR_MAX_VOLTAGE*CAPARR_MAX_VOLTAGE))) * 250U;
 
-    #ifdef WPT_HARDWARE
-        if(psData.outputEEnabled)    
-            td.chassisPower = adcData.pChassislf - adcData.pWPTlf;
-        else
-            td.chassisPower = adcData.pChassislf;
-    #else
-        td.chassisPower = adcData.pChassislf;
-    #endif    
+    td.chassisPower = adcData.pVehiclelf;
     
     td.chassisPowerLimit = CAPARR::getMaxPowerFeedback() + rxData1.refereePowerLimit; //TODO
 }
@@ -180,16 +178,9 @@ static void generateTxDataNew(TxDataNew &td)
                     (errorData.errorLevel & 0x03);
     td.capEnergy = (adcData.vCaplf*adcData.vCaplf * (1/(CAPARR_MAX_VOLTAGE*CAPARR_MAX_VOLTAGE))) * 250U;
 
-    #ifdef WPT_HARDWARE
-        if(psData.outputEEnabled)    
-            td.chassisPower = (adcData.pChassislf - adcData.pWPTlf) * 64U + 16384U;
-        else
-            td.chassisPower = adcData.pChassislf * 64U + 16384U;
-    #else
-        td.chassisPower = adcData.pChassislf * 64U + 16384U;
-    #endif  
+    td.chassisPower = PowerTelemetry::encodePower(adcData.pVehiclelf);
     
-    td.refereePower = adcData.pRefereelf * 64U + 16384U;    
+    td.refereePower = PowerTelemetry::encodePower(adcData.pRefereelf);
     td.chassisPowerLimit = CAPARR::getMaxPowerFeedback() + rxData1.refereePowerLimit; 
 }
 
@@ -267,7 +258,7 @@ extern "C"
         
         while (HAL_FDCAN_GetRxMessage(&hfdcan3, FDCAN_RX_FIFO0, &CANcomm::rxHeader, (uint8_t *) &rxData) == HAL_OK) 
         {
-            if ((CANcomm::rxHeader.Identifier == 0x061) && (CANcomm::rxHeader.DataLength == 0x8) && (CANcomm::rxHeader.IdType == FDCAN_STANDARD_ID)) //
+            if ((CANcomm::rxHeader.Identifier == CAN_CMD_ID) && (CANcomm::rxHeader.DataLength == 0x8) && (CANcomm::rxHeader.IdType == FDCAN_STANDARD_ID)) //
             {
                 ctrlData.refLoop.isConnected = 1;
                 CANcomm::rxDataHandler(rxData);

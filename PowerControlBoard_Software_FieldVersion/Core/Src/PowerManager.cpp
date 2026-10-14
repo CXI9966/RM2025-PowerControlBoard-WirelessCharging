@@ -290,16 +290,17 @@ __attribute__((section(".code_in_ram"))) void updateADCmf()
 
     adcData.vCap = adcData.vB - adcData.iCap * CAPARR_DCR;
     adcData.iChassis = adcData.iR - adcData.iA;
-    adcData.pReferee = adcData.vA * adcData.iR;
-    adcData.pChassis = adcData.vA * adcData.iChassis;
+    const auto busPower = PowerTelemetry::measureBusPower(adcData.vA, adcData.iR, adcData.iA);
+    adcData.pReferee = busPower.battery; // Legacy member: total battery output.
+    adcData.pVehicle = busPower.vehicleLoad; // Joint motors and DJI-module input.
 
     // 对62.5kHz的采样数据进行一阶滤波，截止频率1.5kHz
     adcData.iCaplf = MF_TO_LF_ALPHA * adcData.iCap + 
             (1.0f - MF_TO_LF_ALPHA) * adcData.iCaplf;
     adcData.vCaplf = MF_TO_LF_ALPHA * adcData.vCap + 
             (1.0f - MF_TO_LF_ALPHA) * adcData.vCaplf;
-    adcData.pChassislf = MF_TO_LF_ALPHA * adcData.pChassis + 
-            (1.0f - MF_TO_LF_ALPHA) * adcData.pChassislf;
+    adcData.pVehiclelf = MF_TO_LF_ALPHA * adcData.pVehicle +
+            (1.0f - MF_TO_LF_ALPHA) * adcData.pVehiclelf;
     adcData.pRefereelf = MF_TO_LF_ALPHA * adcData.pReferee + 
             (1.0f - MF_TO_LF_ALPHA) * adcData.pRefereelf;
     

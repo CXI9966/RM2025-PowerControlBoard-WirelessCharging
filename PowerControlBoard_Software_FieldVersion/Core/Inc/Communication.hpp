@@ -73,18 +73,18 @@ struct RxData {
 extern RxData rxData;
 extern RxData rxData1;
 
-struct TxData {                     // 0x051 (useNewFeedbackMessage = 0)
+struct TxData {                     // CAN_FEEDBACK_ID (useNewFeedbackMessage = 0)
     uint8_t statusCode;             // 状态信息
-    float chassisPower;             // 底盘功率，单位W
-    uint16_t chassisPowerLimit;     // 底盘最大可用功率（包括裁判系统）
+    float chassisPower;             // Total vehicle load power, W (legacy wire field).
+    uint16_t chassisPowerLimit;     // total available power limit, W (wire-compatible field)
     uint8_t capEnergy;              // 电容现有能量，0-255
 } __attribute__((packed));
 
-struct TxDataNew {                  // 0x052 (useNewFeedbackMessage = 1)
+struct TxDataNew {                  // CAN_FEEDBACK_NEW_ID (useNewFeedbackMessage = 1)
     uint8_t statusCode;             // 状态信息
-    uint16_t chassisPower;          // 底盘功率，功率*64+16384 (-256W~+768W, 精度0.015625)
-    uint16_t refereePower;          // 裁判系统功率，功率*64+16384 (-256W~+768W, 精度0.015625)
-    uint16_t chassisPowerLimit;     // 底盘最大可用功率（包括裁判系统）
+    uint16_t chassisPower;          // Total vehicle load power*64+16384, saturating.
+    uint16_t refereePower;          // Total battery output power*64+16384, saturating.
+    uint16_t chassisPowerLimit;     // total available power limit, W (wire-compatible field)
     uint8_t capEnergy;              // 电容现有能量，0-255
 } __attribute__((packed));
 

@@ -11,6 +11,7 @@
 #include "stdint.h"
 #include "Config.hpp"
 #include "Utility.hpp"
+#include "PowerTelemetry.hpp"
 
 #include "dac.h"
 #include "opamp.h"
@@ -81,10 +82,10 @@ struct ADCData
     uint32_t rawData4[ADC4_BUFFER_SIZE];                //ADC4 原始数据，用于NTC和辅助电源监测
     float iA = 0.0f, iB = 0.0f, iR = 0.0f, iCap;   //电流
     float vA = 0.0f, vB = 0.0f, vCap = 0.0f;              //电压
-    float iChassis = 0.0f;              //电容电流，电压
-    float pReferee, pChassis;            //裁判系统功率，电容功率，底盘功率，无线充电功率
+    float iChassis = 0.0f;              // Legacy name: total current into both load branches.
+    float pReferee, pVehicle;           // Total battery output and total vehicle load power.
     float iCaplf = 0.0f, vCaplf = 0.0f; //电容电压，电压
-    float pRefereelf = 0.0f, pChassislf = 0.0f;
+    float pRefereelf = 0.0f, pVehiclelf = 0.0f;
 
     float vWPT, iWPT, pWPT, pWPTlf, vWPTlf;
 
